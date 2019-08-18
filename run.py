@@ -10,15 +10,28 @@ from twisted.python import log
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 
+from watcher import Watcher
+
 import sys
+import pdb
+
+connections = set()
+
+def send_driver_diff():
+    global connections
+    for c in connections:
+        c.sendMessage(b'New Drivers!!')
 
 
 class SomeServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
+        connections.add(self)
         print("some request connected {}".format(request))
+
 
     def onMessage(self, payload, isBinary):
         self.sendMessage(b"message received")
+
 
 
 if __name__ == "__main__":
@@ -31,6 +44,9 @@ if __name__ == "__main__":
     resource = WebSocketResource(factory)
     # websockets resource on "/ws" path
     root.putChild(b"ws", resource)
+
+    watcher = Watcher(send_driver_diff)
+    watcher.watch()
 
     site = Site(root)
     reactor.listenTCP(8080, site)
