@@ -15,7 +15,7 @@ class SomeServerProtocol(WebSocketServerProtocol):
         print("some request connected {}".format(request))
 
     def onMessage(self, payload, isBinary):
-        self.sendMessage("message received")
+        self.sendMessage(b"message received")
 
 
 if __name__ == "__main__":
@@ -24,11 +24,11 @@ if __name__ == "__main__":
     # static file server seving index.html as root
     root = File(".")
 
-    factory = WebSocketServerFactory(u"ws://127.0.0.1:8080")
+    factory = WebSocketServerFactory("ws://127.0.0.1:8080")
     factory.protocol = SomeServerProtocol
     resource = WebSocketResource(factory)
     # websockets resource on "/ws" path
-    root.putChild(u"ws", resource)
+    root.putChild(b"ws", resource)
 
     site = Site(root)
     reactor.listenTCP(8080, site)
