@@ -1,13 +1,16 @@
-import sys
-from twisted.python import log
-from twisted.web.server import Site
-from twisted.web.resource import Resource
-from twisted.internet import reactor
-
-from autobahn.twisted.websocket import WebSocketServerFactory, \
-    WebSocketServerProtocol
+# Adapted from
+# https://pawelmhm.github.io/python/websockets/2016/01/02/playing-with-websockets.html
 
 from autobahn.twisted.resource import WebSocketResource
+from autobahn.twisted.websocket import WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketServerProtocol
+
+from twisted.internet import reactor
+from twisted.python import log
+from twisted.web.resource import Resource
+from twisted.web.server import Site
+
+import sys
 
 
 class SomeServerProtocol(WebSocketServerProtocol):
