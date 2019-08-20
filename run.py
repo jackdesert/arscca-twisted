@@ -17,6 +17,7 @@ import pdb
 
 connections = set()
 
+
 def send_driver_diff():
     global connections
     for c in connections:

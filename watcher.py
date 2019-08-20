@@ -3,11 +3,11 @@ from twisted.python.filepath import FilePath
 import pdb
 
 class Watcher:
-    # At some point you must start a reactor
+    # Adapted from
+    # https://twistedmatrix.com/documents/current/api/twisted.internet.inotify.html
 
     UPDATE = 2
     WATCHED_FILENAME = FilePath(b'/tmp/arscca-live.jinja2')
-
 
     def __init__(self, callback):
         self.callback = callback
@@ -31,5 +31,7 @@ if __name__ == '__main__':
     watcher = Watcher(my_callback)
     watcher.watch()
     from twisted.internet import reactor
+
+    # At some point you must start a reactor
     reactor.run()
 
