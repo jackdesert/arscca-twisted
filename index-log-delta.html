@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript">
+
+    // use vanilla JS because why not
+    window.addEventListener("load", function() {
+
+        // create websocket instance
+        var mySocket = new WebSocket("ws://localhost:8080/ws")
+
+        var printConnectionState = function(){
+            var element = document.getElementById('connection-state'),
+                stateInteger = mySocket.readyState,
+                labels = ['0 	CONNECTING 	Socket has been created. The connection is not yet open.',
+                          '1 	OPEN 	The connection is open and ready to communicate.',
+                          '2 	CLOSING 	The connection is in the process of closing.',
+                          '3 	CLOSED 	The connection is closed or could not be opened.']
+
+
+
+            element.textContent = labels[stateInteger]
+
+            // Long delay so we can actually read the inital state before the div changes
+            setTimeout(printConnectionState, 1000)
+        }
+
+        // add event listener reacting when message is received
+        mySocket.onmessage = function (event) {
+            var output = document.getElementById("output")
+            // put text into our output div
+            output.textContent = event.data
+        }
+        var form = document.getElementsByClassName("foo")
+        var input = document.getElementById("input")
+        form[0].addEventListener("submit", function (e) {
+            // on forms submission send input to our server
+            input_text = input.value
+            mySocket.send(input_text)
+            e.preventDefault()
+        })
+
+        printConnectionState()
+    })
+</script>
+</head>
+<body>
+    <h1>Testing the Websocket</h1>
+    <b>Connection State</b>:<span id='connection-state'></span>
+    <form class="foo">
+        <input id="input"></input>
+        <input type="submit"></input>
+    </form>
+
+    <h2>messages will show up below</h2>
+    <pre id="output"></pre>
+</body>
+</html>
