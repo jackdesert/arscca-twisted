@@ -5,6 +5,8 @@ from autobahn.twisted.resource import WebSocketResource
 from autobahn.twisted.websocket import WebSocketServerFactory
 from autobahn.twisted.websocket import WebSocketServerProtocol
 
+from collections import deque
+
 from twisted.internet import reactor
 from twisted.python import log
 from twisted.web.resource import Resource
@@ -18,56 +20,82 @@ import json
 import pdb
 import sys
 
-connections = set()
+
 
 
 class Dispatcher:
+    # A note on method naming conventions.
+    # _100 calls _101 as a callback
+    # _200 calls _201 as a callback
 
     UPSTREAM = 'http://localhost:6543'
 
-    connections = set()
+    N_OVERLAP = 10
+
+    _CLIENTS = set()
+    _RECENT_DELTAS = deque()
 
     @classmethod
-    def add_connection(cls, connection):
-        cls.connections.add(connection)
+    def add_client(cls, client):
+        cls._CLIENTS.add(client)
+
+    @classmethod
+    def send_recent_deltas_to_client(cls, client):
+        print(f'send_recent_deltas_to_client {len(cls._RECENT_DELTAS)} *******************************')
+        for delta in cls._RECENT_DELTAS:
+            cls._send_message_to_client(delta, client)
+
+    @classmethod
+    def _store_delta(cls, data_json):
+        # Maintain deque of recent deltas that is up to N_OVERLAP in length
+        deltas = cls._RECENT_DELTAS
+        deltas.append(data_json)
+        if len(deltas) > cls.N_OVERLAP:
+            deltas.popleft()
 
     @classmethod
     def file_updated(cls):
         print('file_updated *******************************')
-        cls._tell_upstream_to_update_redis()
+        cls._200_tell_upstream_to_update_redis()
 
     @classmethod
-    def _tell_upstream_to_update_redis(cls):
-        print('tell_upstream_to_update_redis *******************************')
+    def _200_tell_upstream_to_update_redis(cls):
+        print('_200_tell_upstream_to_update_redis *******************************')
 
         # Payload from url will say which drivers changed
         url = cls._upstream_url('live/update_redis')
 
         d = getPage(url)
-        d.addCallback(cls._send_delta_drivers_to_all_clients)
+        d.addCallback(cls._201_store_delta_drivers_and_send_to_all_clients)
         d.addErrback(cls._error)
 
     @classmethod
-    def _send_delta_drivers_to_all_clients(cls, data_json):
-        print('send_delta_drivers_to_all_clients *******************************')
-        data = json.loads(data_json)
-        message = dict(source='server',
-                       action='update_drivers',
-                       data=data)
+    def _201_store_delta_drivers_and_send_to_all_clients(cls, data_json):
+        print('_201_store_delta_drivers_and_send_to_all_clients *******************************')
+        # What if pyramid-server returns an error???
+        cls._store_delta(data_json)
 
-        cls._send_message_to_all_clients(message)
+        cls._send_message_to_clients(data_json)
+
 
     @classmethod
-    def _send_message_to_all_clients(cls, message):
-        count = len(cls.connections)
-        print(f'_send_message_to_all_clients ({count} clients)  *******************************')
+    def _send_message_to_client(cls, message, client):
+        cls._send_message_to_clients(message, [client])
+
+    @classmethod
+    def _send_message_to_clients(cls, message, clients=[]):
 
         if isinstance(message, dict):
             message = json.dumps(message)
-        message_bytes = bytes(message, encoding='utf-8')
 
-        for c in cls.connections:
-            c.sendMessage(message_bytes)
+        if isinstance(message, str):
+            # Convert to bytes
+            message = bytes(message, encoding='utf-8')
+
+        clients = clients or cls._CLIENTS
+        print(f'_send_message_to_clients ({len(clients)} clients)  *******************************')
+        for c in clients:
+            c.sendMessage(message) # message is bytes
 
     @classmethod
     def _upstream_url(cls, path):
@@ -82,27 +110,24 @@ class Dispatcher:
         1
 
 
-######
-
-
-def send_driver_diff(revision):
-    global connections
-    message = f'New Drivers for revision {revision}'
-    message_bytes = bytes(message, encoding='utf-8')
-    for c in connections:
-        c.sendMessage(message_bytes)
-
 
 class SomeServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
-        Dispatcher.add_connection(self)
-        print("some request connected {}".format(request))
+        print('CONNECT')
+        for i in range(10):
+            print(f'CONNECT: {i}')
+            self.sendMessage(b'connected')
+        #Dispatcher.add_client(self)
+        #Dispatcher.send_recent_deltas_to_client(self)
+        print(f"some request connected {request}")
 
 
     def onMessage(self, payload, isBinary):
-        self.sendMessage(b"message received")
-
-
+        # Actual application will not use this,
+        # but it is fun to watch
+        message = f'Message received: {payload}'
+        message_bytes = bytes(message, encoding='utf-8')
+        self.sendMessage(message_bytes)
 
 if __name__ == "__main__":
     log.startLogging(sys.stdout)
