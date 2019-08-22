@@ -19,11 +19,17 @@
             element.textContent = labels[stateInteger]
 
             // Long delay so we can actually read the inital state before the div changes
-            setTimeout(printConnectionState, 1000)
+            setTimeout(printConnectionState, 400)
         }
 
         // create websocket instance
         var mySocket = new WebSocket("ws://localhost:8080/ws")
+
+
+        // Connection opened
+        mySocket.addEventListener('open', function (event) {
+            //mySocket.send('Hello Server!');
+        });
 
         // add event listener reacting when message is received
         mySocket.onmessage = function (event) {
@@ -33,9 +39,9 @@
             console.log(event)
         }
 
-        mySocket.onerror = function (event) {
-            debugger
-        }
+        //mySocket.onerror = function (event) {
+        //    debugger
+        //}
         var form = document.getElementsByClassName("foo")
         var input = document.getElementById("input")
         form[0].addEventListener("submit", function (e) {

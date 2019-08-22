@@ -113,13 +113,21 @@ class Dispatcher:
 
 class SomeServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
-        print('CONNECT')
-        for i in range(10):
-            print(f'CONNECT: {i}')
-            self.sendMessage(b'connected')
-        #Dispatcher.add_client(self)
-        #Dispatcher.send_recent_deltas_to_client(self)
-        print(f"some request connected {request}")
+        # You cannot yet send messages to this protocol
+        # Send any greetings in onOpen
+        print(f'New Connection about to happen: {request}')
+        Dispatcher.add_client(self)
+
+    def onOpen(self):
+        # docs for WebSocketServerProtocol indicate to send messages
+        # in connectionMade callback, but inside that callback
+        # sending messages results in an error ( self.state undefined )
+        # Sending from onOpen appears to work
+
+        print('CONNECTION OPEN')
+        self.sendMessage(b'Connected to twisted-server')
+        Dispatcher.send_recent_deltas_to_client(self)
+
 
 
     def onMessage(self, payload, isBinary):
