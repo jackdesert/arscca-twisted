@@ -42,8 +42,12 @@ class Dispatcher:
         cls._CLIENTS.add(client)
 
     @classmethod
+    def remove_client(cls, client):
+        cls._CLIENTS.remove(client)
+
+    @classmethod
     def send_recent_deltas_to_client(cls, client):
-        print(f'send_recent_deltas_to_client {len(cls._RECENT_DELTAS)} *******************************')
+        print(f'send_recent_deltas_to_client. deltas: {len(cls._RECENT_DELTAS)}, clients: {len(cls._CLIENTS)} *******************************')
         for delta in cls._RECENT_DELTAS:
             cls._send_message_to_client(delta, client)
 
@@ -144,10 +148,14 @@ class SomeServerProtocol(WebSocketServerProtocol):
         # Sending from onOpen appears to work
 
         print('CONNECTION OPEN')
-        #self.sendMessage(b'Connected to twisted-server')
         Dispatcher.send_recent_deltas_to_client(self)
 
-
+    def onClose(self, wasClean, code, reason):
+        print(f'Removing Client. wasClean: {wasClean}, code: {code}, reason: {reason}')
+        # If client loses network, this appears not to fire.
+        # Is it a problem if there are many (say two hundred) open connections
+        # and a bunch of them have lost network?
+        Dispatcher.remove_client(self)
 
     def onMessage(self, payload, isBinary):
         # Actual application will not use this,

@@ -18,6 +18,8 @@ class Watcher:
         notifier.watch(self.WATCHED_FILENAME, callbacks=[self._invoke_callback])
 
     def _invoke_callback(self, ignored, filepath, mask):
+        # Note you will end up in this method TWICE
+        # if you change the file and save from Vim
         if mask == self.UPDATE:
             print(f'file updated: {filepath}. Invoking callback {self.callback}')
             self.callback()

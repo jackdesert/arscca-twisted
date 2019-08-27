@@ -1,0 +1,20 @@
+[Unit]
+Description=ARSCCA-TWISTED
+Wants=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/arscca-twisted
+EnvironmentFile=/home/ubuntu/arscca-twisted/config/environment
+
+ExecStart=/home/ubuntu/arscca/env/bin/pserve production.ini
+
+TimeoutSec=30
+RestartSec=15s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
