@@ -15,6 +15,7 @@ from twisted.web.server import Site
 from twisted.web.client import getPage
 
 from watcher import Watcher
+from util import Util
 
 import json
 import pdb
@@ -106,8 +107,7 @@ class Dispatcher:
     @classmethod
     def _error(cls, exc):
         print(f'ERROR: {exc} *****************************')
-        pdb.set_trace()
-        1
+        Util.post_to_slack(exc)
 
 
 
@@ -125,7 +125,7 @@ class SomeServerProtocol(WebSocketServerProtocol):
         # Sending from onOpen appears to work
 
         print('CONNECTION OPEN')
-        self.sendMessage(b'Connected to twisted-server')
+        #self.sendMessage(b'Connected to twisted-server')
         Dispatcher.send_recent_deltas_to_client(self)
 
 
