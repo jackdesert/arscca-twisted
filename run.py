@@ -24,9 +24,11 @@ import treq
 
 
 class Dispatcher:
-    # A note on method naming conventions.
+    # Callback Chain Naming Convention
     # _100 calls _101 as a callback
-    # _200 calls _201 as a callback
+
+    class UpstreamError(Exception):
+        '''Used to indicate a network call failed'''
 
     UPSTREAM = 'http://localhost:6543'
 
@@ -66,17 +68,30 @@ class Dispatcher:
         url = cls._upstream_url('live/update_redis')
 
         d = treq.get(url, timeout=10)
-        d.addCallback(cls._201_store_delta_drivers_and_send_to_all_clients)
+        d.addCallback(cls._201_verify_status_code_and_read_response, url)
         d.addErrback(cls._error)
 
     @classmethod
-    def _201_store_delta_drivers_and_send_to_all_clients(cls, data_json):
-        print('_201_store_delta_drivers_and_send_to_all_clients *******************************')
-        # What if pyramid-server returns an error???
-        cls._store_delta(data_json)
+    def _201_verify_status_code_and_read_response(cls, response, url):
+        print('_201_verify_status_code_and_read_response *******************************')
 
-        cls._send_message_to_clients(data_json)
+        # treq is strict about deferreds.
+        # That is, we have access to the status code here,
+        # but to get the respones body, we must use a callback.
+        code = response.code
+        if code == 200:
+            d = response.text()
+            d.addCallback(cls._202_store_delta_and_send_to_all_clients)
+            d.addErrback(cls._error)
+        else:
+            exc = cls.UpstreamError(f'Status code {code} accessing {url.decode()}')
+            Util.post_to_slack(exc)
 
+    @classmethod
+    def _202_store_delta_and_send_to_all_clients(cls, delta_json):
+        print('_202_store_delta_and_send_to_all_clients *******************************')
+        cls._store_delta(delta_json)
+        cls._send_message_to_clients(delta_json)
 
     @classmethod
     def _send_message_to_client(cls, message, client):
@@ -107,6 +122,11 @@ class Dispatcher:
     def _error(cls, exc):
         print(f'ERROR: {exc} *****************************')
         Util.post_to_slack(exc)
+
+    @classmethod
+    def callMe(cls, arg):
+        pdb.set_trace()
+        1
 
 
 
