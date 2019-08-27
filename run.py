@@ -12,14 +12,13 @@ from twisted.python import log
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 
-from twisted.web.client import getPage
-
 from watcher import Watcher
 from util import Util
 
 import json
 import pdb
 import sys
+import treq
 
 
 
@@ -66,7 +65,7 @@ class Dispatcher:
         # Payload from url will say which drivers changed
         url = cls._upstream_url('live/update_redis')
 
-        d = getPage(url)
+        d = treq.get(url, timeout=10)
         d.addCallback(cls._201_store_delta_drivers_and_send_to_all_clients)
         d.addErrback(cls._error)
 

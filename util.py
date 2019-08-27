@@ -1,7 +1,7 @@
 
 import os
 import pdb
-import requests
+import treq
 
 class Util():
 
@@ -17,16 +17,23 @@ class Util():
             return
 
         exception_name = exc.__class__.__name__
-        # Asterisks are like <b></b>
 
+        text = exc.__repr__()
+
+        # Asterisks for <b></b>
         # Double line feed for newline
-        # Asterisk for <b></b>
-        payload = {'text': exc.__repr__(),
-                   'username': 'RacecarBot',
+        if 'ResponseNeverReceived' in text:
+            text = '*TimeoutError*'
+        elif 'ConnectionRefusedError' in text:
+            text = '*ConnectionRefusedError*'
+
+        payload = {'text': text,
+                   'username': 'arscca-twisted',
                    'icon_emoji': ':ghost:'}
 
-        requests.post(url, json=payload, timeout=1)
-        1
+        # Using treq instead of requests
+        # Note in this case it has the same signature
+        deferred = treq.post(url, json=payload, timeout=5)
 
 
 if __name__ == '__main__':
@@ -35,4 +42,8 @@ if __name__ == '__main__':
 
     exc = TestException('Sending into orbit')
     Util.post_to_slack(exc)
+
+    from twisted.internet import reactor
+    reactor.run()
+    print('CTRL-C to stop reactor')
 
