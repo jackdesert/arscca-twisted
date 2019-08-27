@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     root = Resource()
 
-    factory = WebSocketServerFactory("ws://127.0.0.1:8080")
+    factory = WebSocketServerFactory("ws://127.0.0.1:6544")
     factory.protocol = SomeServerProtocol
     resource = WebSocketResource(factory)
     # websockets resource on "/ws" path
@@ -152,5 +152,5 @@ if __name__ == "__main__":
     watcher.watch()
 
     site = Site(root)
-    reactor.listenTCP(8080, site)
+    reactor.listenTCP(6544, site)
     reactor.run()
