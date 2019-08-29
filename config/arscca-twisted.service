@@ -7,9 +7,9 @@ Type=simple
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/arscca-twisted
-EnvironmentFile=/home/ubuntu/arscca-twisted/config/environment
+EnvironmentFile=/home/ubuntu/arscca-twisted/config/environment.txt
 
-ExecStart=/home/ubuntu/arscca/env/bin/pserve production.ini
+ExecStart=/home/ubuntu/arscca-twisted/env/bin/python run.py
 
 TimeoutSec=30
 RestartSec=15s
