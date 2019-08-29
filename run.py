@@ -127,12 +127,6 @@ class Dispatcher:
         print(f'ERROR: {exc} *****************************')
         Util.post_to_slack(exc)
 
-    @classmethod
-    def callMe(cls, arg):
-        pdb.set_trace()
-        1
-
-
 
 class SomeServerProtocol(WebSocketServerProtocol):
     def onConnect(self, request):
@@ -146,7 +140,6 @@ class SomeServerProtocol(WebSocketServerProtocol):
         # in connectionMade callback, but inside that callback
         # sending messages results in an error ( self.state undefined )
         # Sending from onOpen appears to work
-
         print('CONNECTION OPEN')
         Dispatcher.send_recent_deltas_to_client(self)
 
