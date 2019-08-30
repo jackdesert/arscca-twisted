@@ -28,6 +28,19 @@ Explanation of Packages
 Production Setup
 ----------------
 
+
+### Systemd
+
+There is a systemd unit file in config/arscca-twisted.service
+
+
+### Install Packages from requirements.txt
+
+    env/bin/pip install -r requirements.txt
+
+
+### Slack Integration
+
 You will probably want to set the slack url in config/environment.txt
 
     cd /path/to/project
@@ -36,17 +49,17 @@ You will probably want to set the slack url in config/environment.txt
     vi environment.txt
 
 
-### Install Packages from requirements.txt
-
-    env/bin/pip install -r requirements.txt
-
-
-
-
 Run
 ---
 
     env/bin/python run.py
+
+
+
+Test Slack Integration
+----------------------
+
+    env/bin/python util.py
 
 
 
