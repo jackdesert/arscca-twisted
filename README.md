@@ -52,7 +52,9 @@ You will probably want to set the slack url in config/environment.txt
 Run
 ---
 
-    env/bin/python run.py
+Run as www-data so you have write access to the archive dir
+
+    sudo -u www-data env/bin/python run.py
 
 
 

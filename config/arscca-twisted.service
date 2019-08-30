@@ -7,6 +7,9 @@ Type=simple
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/arscca-twisted
+
+# Timezone set to chicago so timestamps match when saving archived files 
+Environment=TZ=America/Chicago
 EnvironmentFile=/home/ubuntu/arscca-twisted/config/environment.txt
 
 ExecStart=/home/ubuntu/arscca-twisted/env/bin/python run.py
