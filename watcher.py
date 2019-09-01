@@ -22,6 +22,8 @@ class Watcher:
 
     UPDATE = 2
     ATTRIB = 4
+    DELETE_SELF = 1024
+
     WATCHED_FILENAME = '/home/arscca/arscca-live.jinja2'
     WATCHED_FILENAME_OBJECT = FilePath(WATCHED_FILENAME.encode())
     ARCHIVE_DIR = '/home/arscca/archive'
@@ -38,7 +40,14 @@ class Watcher:
         notifier.watch(self.WATCHED_FILENAME_OBJECT, callbacks=[self._invoke_callback])
 
     def _invoke_callback(self, ignored, filepath, mask):
-        #mask_h = inotify.humanReadableMask(mask)
+        mask_h = inotify.humanReadableMask(mask)
+        print(f'MASK: {mask_h}')
+
+        if mask == self.DELETE_SELF:
+            # For some reason when updating the file via rsync (from remote)
+            # DELETE_SELF is triggered, which causes the file to no longer be watched
+            # Therefore we start over
+            self.watch()
         
         # Note updating file via vim shows up as UPDATE, and triggers TWICE :/
         # Note updating file via `echo ' ' >> FILE` shows up as UPDATE

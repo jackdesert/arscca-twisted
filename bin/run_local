@@ -1,0 +1,3 @@
+#! /bin/bash
+
+TZ=America/Chicago sudo -u www-data env/bin/python run.py
