@@ -33,6 +33,7 @@ class Watcher:
     def __init__(self, callback):
         self.callback = callback
         self._ensure_correct_ownership()
+        self._update_counter = 0
 
     def watch(self):
         notifier = inotify.INotify()
@@ -41,21 +42,32 @@ class Watcher:
 
     def _invoke_callback(self, ignored, filepath, mask):
         mask_h = inotify.humanReadableMask(mask)
+        archive_file_name = self._archive_file()
         print(f'MASK: {mask_h}')
+
+        # Note updating file via vim shows up as UPDATE, and triggers TWICE :/
+        # Note updating file via `echo ' ' >> FILE` shows up as UPDATE
+        # Note updating file via rsync shows up as ATTRIB, then DELETE_SELF
+        if mask == self.UPDATE:
+            # When file is updated via linux `cp`, UPDATE happens twice
+            # about 2 milliseconds apart.
+            # We call the callback on the second one
+            # because otherwise arscca-pyramid will end up reading a blank file
+            if self._update_counter % 2 == 1:
+                print(f'file copied to {archive_file_name}. Callback invoked now.')
+                self.callback()
+            self._update_counter += 1
+
+        if mask == self.ATTRIB:
+            # When file is updated (remotely) via rsync , we end up here
+            print(f'file copied to {archive_file_name}. Callback invoked now.')
+            self.callback()
 
         if mask == self.DELETE_SELF:
             # For some reason when updating the file via rsync (from remote)
             # DELETE_SELF is triggered, which causes the file to no longer be watched
             # Therefore we start over
             self.watch()
-        
-        # Note updating file via vim shows up as UPDATE, and triggers TWICE :/
-        # Note updating file via `echo ' ' >> FILE` shows up as UPDATE
-        # Note updating file via rsync shows up as ATTRIB, then DELETE_SELF
-        if mask in (self.UPDATE, self.ATTRIB):
-            archive_file_name = self._archive_file()
-            print(f'file copied to {archive_file_name}. Callback invoked.')
-            self.callback()
 
     def _ensure_correct_ownership(self):
         # Make sure file is present 
