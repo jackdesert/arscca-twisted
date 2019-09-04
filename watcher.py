@@ -39,6 +39,7 @@ class Watcher:
         notifier = inotify.INotify()
         notifier.startReading()
         notifier.watch(self.WATCHED_FILENAME_OBJECT, callbacks=[self._invoke_callback])
+        self._notifier = notifier
 
     def _invoke_callback(self, ignored, filepath, mask):
         mask_h = inotify.humanReadableMask(mask)
@@ -67,6 +68,13 @@ class Watcher:
             # For some reason when updating the file via rsync (from remote)
             # DELETE_SELF is triggered, which causes the file to no longer be watched
             # Therefore we start over
+
+            # Tell it to delete the file descriptor (connectionLost).
+            # Otherwise we eventually run out of file descriptors
+            # Note we do this in the future, because if we call it inline (now),
+            # our process stops watching the file.
+            from twisted.internet import reactor
+            reactor.callLater(1, self._notifier.connectionLost, 'rsync issued DELETE_SELF')
             self.watch()
 
     def _ensure_correct_ownership(self):
