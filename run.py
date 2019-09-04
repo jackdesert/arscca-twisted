@@ -157,6 +157,13 @@ class SomeServerProtocol(WebSocketServerProtocol):
         message_bytes = bytes(message, encoding='utf-8')
         self.sendMessage(message_bytes)
 
+class StatusPage(Resource):
+    # see https://twistedmatrix.com/documents/current/web/howto/using-twistedweb.html
+    isLeaf = True
+    def render_GET(self, request):
+        return b'<html><body><h1>Serving</h1></body></html>'
+
+
 if __name__ == "__main__":
     log.startLogging(sys.stdout)
 
@@ -165,8 +172,13 @@ if __name__ == "__main__":
     factory = WebSocketServerFactory("ws://127.0.0.1:6544")
     factory.protocol = SomeServerProtocol
     resource = WebSocketResource(factory)
+
     # websockets resource on "/ws" path
     root.putChild(b"ws", resource)
+
+    # status page on "/" path
+    status_page = StatusPage()
+    root.putChild(b'', status_page)
 
     watcher = Watcher(Dispatcher.file_updated)
     watcher.watch()
