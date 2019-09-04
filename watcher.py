@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timedelta
 from shutil import copyfile
 
 # Utilites for ascertaining owner and group of files
@@ -33,7 +34,7 @@ class Watcher:
     def __init__(self, callback):
         self.callback = callback
         self._ensure_correct_ownership()
-        self._update_counter = 0
+        self._recent_update = datetime.now()
 
     def watch(self):
         notifier = inotify.INotify()
@@ -54,10 +55,12 @@ class Watcher:
             # about 2 milliseconds apart.
             # We call the callback on the second one
             # because otherwise arscca-pyramid will end up reading a blank file
-            if self._update_counter % 2 == 1:
+            now = datetime.now()
+            delta = now - self._recent_update 
+            self._recent_update = now
+            if delta < timedelta(milliseconds=50):
                 print(f'file copied to {archive_file_name}. Callback invoked now.')
                 self.callback()
-            self._update_counter += 1
 
         if mask == self.ATTRIB:
             # When file is updated (remotely) via rsync , we end up here
