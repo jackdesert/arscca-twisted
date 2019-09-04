@@ -70,17 +70,21 @@ class Watcher:
             self.watch()
 
     def _ensure_correct_ownership(self):
-        # Make sure file is present 
+        # Make sure file is present
         # BECAUSE if file does not exist, arscca-pyramid will throw an error
         assert os.path.isfile(self.WATCHED_FILENAME)
 
         # Make sure file is owned by correct owner
-        # BECAUSE rsync needs to be able to write to it. 
+        # BECAUSE rsync needs to be able to write to it.
         assert self._owner_of_watched_file == self.EXPECTED_OWNER_OF_WATCHED_FILE
+        # Make sure file can be read by this process
+        assert os.access(self.WATCHED_FILENAME, os.R_OK)
 
         # Make sure archive dir is owned by the correct owner
         # Otherwise this process will not be able to write files there
         assert self._group_of_archive_dir  == self.EXPECTED_GROUP_OF_ARCHIVE_DIR
+        # Make sure directory is writable by this process
+        assert os.access(self.ARCHIVE_DIR, os.W_OK)
 
 
     def _archive_file(self):
