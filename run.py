@@ -81,12 +81,14 @@ class Dispatcher:
 
         # treq is strict about deferreds.
         # That is, we have access to the status code here,
-        # but to get the respones body, we must use a callback.
+        # but to get the response body, we must use a callback.
         code = response.code
         if code == 200:
             d = response.text()
             d.addCallback(cls._202_store_delta_and_send_to_all_clients)
             d.addErrback(cls._error)
+        elif code == 429:
+            print('429 Error: Pyramid was unable to keep up, so this request was dropped')
         else:
             exc = cls.UpstreamError(f'Status code {code} accessing {url.decode()}')
             Util.post_to_slack(exc)
