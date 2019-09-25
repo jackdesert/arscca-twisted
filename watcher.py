@@ -25,6 +25,11 @@ class Watcher:
     ATTRIB = 4
     DELETE_SELF = 1024
 
+
+    DUPLICATE_WINDOW_MILLISECONDS = 50
+    FILE_POPULATION_DELAY_SECONDS = 0.010 # Must be more than 0.002
+    CONNECTION_LOST_DELAY_SECONDS = 1     # How long to wait before removing file handle
+
     WATCHED_FILENAME = '/home/arscca/arscca-live.jinja2'
     WATCHED_FILENAME_OBJECT = FilePath(WATCHED_FILENAME.encode())
     ARCHIVE_DIR = '/home/arscca/archive'
@@ -44,41 +49,58 @@ class Watcher:
 
     def _invoke_callback(self, ignored, filepath, mask):
         mask_h = inotify.humanReadableMask(mask)
-        archive_file_name = self._archive_file()
-        print(f'MASK: {mask_h}')
 
-        # Note updating file via vim shows up as UPDATE, and triggers TWICE :/
-        # Note updating file via `echo ' ' >> FILE` shows up as UPDATE
-        # Note updating file via rsync shows up as ATTRIB, then DELETE_SELF
+        # meta updating file via vim shows up as UPDATE, and triggers
+        # sometimes only once, and sometimes TWICE :/ (See inotify docs
+        # on coalesced events)
+        # meta updating file via `echo ' ' >> FILE` shows up as UPDATE
+        # meta updating file via rsync shows up as ATTRIB, then DELETE_SELF
         if mask == self.UPDATE:
-            # When file is updated via linux `cp`, UPDATE happens twice
-            # about 2 milliseconds apart.
-            # We call the callback on the second one
-            # because otherwise arscca-pyramid will end up reading a blank file
+            # When file is updated via linux `cp`,
+            # Sometimes UPDATE happens twice about 2 milliseconds apart.
+            # (And the file is still empty when the first one hits)
+            # Other times those two events are coalesced into one
+            # (See inotify man page regarding coalesced events)
+            # THEREFORE we trigger on only the first within a time window,
+            # BUT we also insert a small delay to give the file
+            # time to actually be populated.
             now = datetime.now()
-            delta = now - self._recent_update 
+            delta = now - self._recent_update
             self._recent_update = now
-            if delta < timedelta(milliseconds=50):
-                print(f'file copied to {archive_file_name}. Callback invoked now.')
-                self.callback()
+            action = 'Callback skipped because duplicate'
+
+            # Rate limit this event by only allowing the first of events in a window
+            if delta > timedelta(milliseconds=self.DUPLICATE_WINDOW_MILLISECONDS):
+                msg = self._archive_file()
+                action = f'{msg}Callback will be invoked in {self.FILE_POPULATION_DELAY_SECONDS}s.'
+                from twisted.internet import reactor
+                # Call it enough in the future that the file is actually there
+                reactor.callLater(self.FILE_POPULATION_DELAY_SECONDS,
+                                  self.callback)
 
         if mask == self.ATTRIB:
             # When file is updated (remotely) via rsync , we end up here
-            print(f'file copied to {archive_file_name}. Callback invoked now.')
+            msg = self._archive_file()
+            action = f'{msg}Callback invoked now.'
             self.callback()
 
         if mask == self.DELETE_SELF:
-            # For some reason when updating the file via rsync (from remote)
+            # For some reason when updating the file via rsync (remotely)
             # DELETE_SELF is triggered, which causes the file to no longer be watched
-            # Therefore we start over
 
             # Tell it to delete the file descriptor (connectionLost).
             # Otherwise we eventually run out of file descriptors
             # Note we do this in the future, because if we call it inline (now),
             # our process stops watching the file.
+            action = 'restarted file watcher'
             from twisted.internet import reactor
-            reactor.callLater(1, self._notifier.connectionLost, 'rsync issued DELETE_SELF')
+            reactor.callLater(self.CONNECTION_LOST_DELAY_SECONDS,
+                              self._notifier.connectionLost,
+                              'rsync issued DELETE_SELF')
+            # Start Over
             self.watch()
+
+        print(f'MASK: {mask_h}, action: {action}')
 
     def _ensure_correct_ownership(self):
         # Make sure file is present
@@ -103,7 +125,7 @@ class Watcher:
         now_string = now.strftime('%Y-%m-%d--%H%M%S.%f')
         dest = f'{self.ARCHIVE_DIR}/{now_string}.jinja2'
         copyfile(self.WATCHED_FILENAME, dest)
-        return dest
+        return f'File copied to {dest}. '
 
     @property
     def _owner_of_watched_file(self):
