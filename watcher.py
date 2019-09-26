@@ -71,8 +71,7 @@ class Watcher:
 
             # Rate limit this event by only allowing the first of events in a window
             if delta > timedelta(milliseconds=self.DUPLICATE_WINDOW_MILLISECONDS):
-                msg = self._archive_file()
-                action = f'{msg}Callback will be invoked in {self.FILE_POPULATION_DELAY_SECONDS}s.'
+                action = f'Callback will be invoked in {self.FILE_POPULATION_DELAY_SECONDS}s.'
                 from twisted.internet import reactor
                 # Call it enough in the future that the file is actually there
                 reactor.callLater(self.FILE_POPULATION_DELAY_SECONDS,
@@ -121,6 +120,8 @@ class Watcher:
 
 
     def _archive_file(self):
+        # It only makes sense to call this when running via rsync (actual events)
+        # Because if you call this for demo_cp, it fills up the disk
         now = datetime.now()
         now_string = now.strftime('%Y-%m-%d--%H%M%S.%f')
         dest = f'{self.ARCHIVE_DIR}/{now_string}.jinja2'
