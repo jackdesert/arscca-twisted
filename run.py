@@ -32,6 +32,16 @@ class Dispatcher:
 
     UPSTREAM = 'http://localhost:6543'
 
+    # If there are no CPU burst credits on the AWS box, 
+    # arscca-pyramid running on a t2.nano takes 15 seconds to parse
+    # one event with 66 drivers. 
+    # Ideally, we run the demo with a period great enough that we
+    # do not deplete the CPU burst credits. But if we have depleted
+    # them, it makes sense to offer a timeout greater than the time 
+    # required to complete the request at the base CPU rate. 
+    # (nano has a 5% base rate)
+    UPSTREAM_TIMEOUT_SECONDS = 30
+
     N_OVERLAP = 10
 
     _CLIENTS = set()
@@ -71,7 +81,7 @@ class Dispatcher:
         # Payload from url will say which drivers changed
         url = cls._upstream_url('live/update_redis')
 
-        d = treq.get(url, timeout=10)
+        d = treq.get(url, timeout=cls.UPSTREAM_TIMEOUT_SECONDS)
         d.addCallback(cls._201_verify_status_code_and_read_response, url)
         d.addErrback(cls._error)
 

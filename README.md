@@ -73,6 +73,31 @@ and are no longer needed. You may want to keep them around in case something bre
 They work somewhat like a test-in-a-box.
 
 
+Performance
+-----------
+
+If you are hosting this on a T2 or T3 instance on AWS, note that these instance
+types are CPU burstable. That means it will appear performant when you parse
+a single event, but if you turn on bin/demo_cp and let it run for a long time,
+your CPU burst credits may run out.
+
+On a t2.nano, which has a baseline rate of 5%, it takes about 15 seconds to parse a single event with 66 drivers.
+When burst credits are available, it runs in about 400ms.
+
+Supposedly burst credits go away on restart, so if you want to see baseline performance,
+you may simply restart the box.
+
+### Timeout POSTing to Upstream
+
+If you are seeing timeouts POSTing to arscca-pyrame, it may be that you have run out
+of burst credits.
+
+### ssh Performance
+
+Note that when you have no CPU burst credits available, it also takes longer
+to do things like ssh into the box, open documents in vim, etc.
+
+
 Backlog
 -------
 
