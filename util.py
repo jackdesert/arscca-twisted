@@ -5,9 +5,6 @@ import treq
 
 class Util():
 
-    HOST = 'localhost'
-    PORT = '6543'
-
     @classmethod
     def post_to_slack(cls, exc):
         url = os.environ.get('ARSCCA_TWISTED_SLACK_HOOK')

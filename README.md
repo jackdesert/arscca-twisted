@@ -3,8 +3,30 @@ Arscca-Websocket
 
 This repository provides an autobahn/twisted server with a websocket.
 
-Setup
------
+Docker
+------
+
+### Build
+
+    docker build .
+
+### Run
+
+See the incantation in arscca/README.md for starting individual containers
+
+
+### Compose
+
+The docker-compose.yml file is in the /arscca repo
+
+    cd /arscca
+    docker compose up
+
+
+
+
+Manual Setup (For non-docker installations)
+-------------------------------------------
 
 Python3.6 or greater is required, because this project uses F-strings.
 
