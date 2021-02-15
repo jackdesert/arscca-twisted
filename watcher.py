@@ -27,7 +27,7 @@ class Watcher:
 
 
     DUPLICATE_WINDOW_MILLISECONDS = 50
-    FILE_POPULATION_DELAY_SECONDS = 0.010 # Must be more than 0.002
+    FILE_POPULATION_DELAY_SECONDS = 0.020 # Must be more than 0.002
     CONNECTION_LOST_DELAY_SECONDS = 1     # How long to wait before removing file handle
 
     WATCHED_FILENAME = '/home/arscca/arscca-live.jinja2'
@@ -67,7 +67,7 @@ class Watcher:
             now = datetime.now()
             delta = now - self._recent_update
             self._recent_update = now
-            action = 'Callback skipped because duplicate'
+            action = f'Callback skipped because duplicate. delta_seconds: {delta.seconds + delta.microseconds / 1e6}'
 
             # Rate limit this event by only allowing the first of events in a window
             if delta > timedelta(milliseconds=self.DUPLICATE_WINDOW_MILLISECONDS):

@@ -8,7 +8,10 @@ class Util():
     @classmethod
     def post_to_slack(cls, exc):
         url = os.environ.get('ARSCCA_TWISTED_SLACK_HOOK')
-        if not url:
+        if url:
+            print(f'ERROR: {exc}')
+            print(f'Posting to Slack: {url}')
+        else:
             print(f'ERROR: {exc}')
             print('NOT POSTING TO SLACK because no URL provided')
             return
