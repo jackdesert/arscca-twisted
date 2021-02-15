@@ -1,26 +1,23 @@
 # Adapted from
 # https://pawelmhm.github.io/python/websockets/2016/01/02/playing-with-websockets.html
 
-from autobahn.twisted.resource import WebSocketResource
-from autobahn.twisted.websocket import WebSocketServerFactory
-from autobahn.twisted.websocket import WebSocketServerProtocol
-
 from collections import deque
-
-from twisted.internet import reactor
-from twisted.python import log
-from twisted.web.resource import Resource
-from twisted.web.server import Site
-
-from watcher import Watcher
-from util import Util
-
 import json
 import pdb
 import sys
 import treq
 
+from autobahn.twisted.resource import WebSocketResource
+from autobahn.twisted.websocket import WebSocketServerFactory
+from autobahn.twisted.websocket import WebSocketServerProtocol
+from twisted.internet import reactor
+from twisted.python import log
+from twisted.python.logfile import DailyLogFile
+from twisted.web.resource import Resource
+from twisted.web.server import Site
 
+from watcher import Watcher
+from util import Util
 
 
 class Dispatcher:
@@ -57,7 +54,9 @@ class Dispatcher:
 
     @classmethod
     def send_recent_deltas_to_client(cls, client):
-        print(f'send_recent_deltas_to_client. deltas: {len(cls._RECENT_DELTAS)}, clients: {len(cls._CLIENTS)} *******************************')
+        print(
+            f'send_recent_deltas_to_client. deltas: {len(cls._RECENT_DELTAS)}, clients: {len(cls._CLIENTS)} *******************************'
+        )
         for delta in cls._RECENT_DELTAS:
             cls._send_message_to_client(delta, client)
 
@@ -87,7 +86,9 @@ class Dispatcher:
 
     @classmethod
     def _201_verify_status_code_and_read_response(cls, response, url):
-        print('_201_verify_status_code_and_read_response *******************************')
+        print(
+            '_201_verify_status_code_and_read_response *******************************'
+        )
 
         # treq is strict about deferreds.
         # That is, we have access to the status code here,
@@ -98,14 +99,18 @@ class Dispatcher:
             d.addCallback(cls._202_store_delta_and_send_to_all_clients)
             d.addErrback(cls._error)
         elif code == 429:
-            print('429 Error: Pyramid was unable to keep up, so this request was dropped')
+            print(
+                '429 Error: Pyramid was unable to keep up, so this request was dropped'
+            )
         else:
             exc = cls.UpstreamError(f'Status code {code} accessing {url.decode()}')
             Util.post_to_slack(exc)
 
     @classmethod
     def _202_store_delta_and_send_to_all_clients(cls, delta_json):
-        print('_202_store_delta_and_send_to_all_clients *******************************')
+        print(
+            '_202_store_delta_and_send_to_all_clients *******************************'
+        )
         cls._store_delta(delta_json)
         cls._send_message_to_clients(delta_json)
 
@@ -124,9 +129,11 @@ class Dispatcher:
             message = bytes(message, encoding='utf-8')
 
         clients = clients or cls._CLIENTS
-        print(f'_send_message_to_clients ({len(clients)} clients)  *******************************')
+        print(
+            f'_send_message_to_clients ({len(clients)} clients)  *******************************'
+        )
         for c in clients:
-            c.sendMessage(message) # message is bytes
+            c.sendMessage(message)  # message is bytes
 
     @classmethod
     def _upstream_url(cls, path):
@@ -169,26 +176,28 @@ class SomeServerProtocol(WebSocketServerProtocol):
         message_bytes = bytes(message, encoding='utf-8')
         self.sendMessage(message_bytes)
 
+
 class StatusPage(Resource):
     # see https://twistedmatrix.com/documents/current/web/howto/using-twistedweb.html
     isLeaf = True
+
     def render_GET(self, request):
         return b'<html><body><h1>Serving</h1></body></html>'
 
 
-if __name__ == "__main__":
-    log.startLogging(sys.stdout)
+if __name__ == '__main__':
+    log.startLogging(DailyLogFile.fromFullPath('/tmp/arscca-twisted.log'))
 
     root = Resource()
 
-    factory = WebSocketServerFactory("ws://127.0.0.1:6544")
+    factory = WebSocketServerFactory('ws://127.0.0.1:6544')
     factory.protocol = SomeServerProtocol
     resource = WebSocketResource(factory)
 
-    # websockets resource on "/ws" path
-    root.putChild(b"ws", resource)
+    # websockets resource on '/ws' path
+    root.putChild(b'ws', resource)
 
-    # status page on "/" path
+    # status page on '/' path
     status_page = StatusPage()
     root.putChild(b'', status_page)
 
