@@ -1,10 +1,12 @@
-# Adapted from
-# https://pawelmhm.github.io/python/websockets/2016/01/02/playing-with-websockets.html
+"""
+This file represents the controller/view of this twisted project
+
+Adapted from
+https://pawelmhm.github.io/python/websockets/2016/01/02/playing-with-websockets.html
+"""
 
 from collections import deque
 import json
-import pdb
-import sys
 import treq
 
 from autobahn.twisted.resource import WebSocketResource
@@ -21,8 +23,10 @@ from util import Util
 
 
 class Dispatcher:
-    # Callback Chain Naming Convention
-    # _100 calls _101 as a callback
+    """
+    Callback Chain Naming Convention
+    _100 calls _101 as a callback
+    """
 
     class UpstreamError(Exception):
         '''Used to indicate a network call failed'''
@@ -46,23 +50,36 @@ class Dispatcher:
 
     @classmethod
     def add_client(cls, client):
+        """
+        Add a client to the pool
+        """
         cls._CLIENTS.add(client)
 
     @classmethod
     def remove_client(cls, client):
+        """
+        Remove a client from the pool
+        """
         cls._CLIENTS.remove(client)
 
     @classmethod
     def send_recent_deltas_to_client(cls, client):
+        """
+        Sends recent deltas to a single client
+        """
+        num_deltas = len(cls._RECENT_DELTAS)
+        num_clients = len(cls._CLIENTS)
         print(
-            f'send_recent_deltas_to_client. deltas: {len(cls._RECENT_DELTAS)}, clients: {len(cls._CLIENTS)} *******************************'
+            f'send_recent_deltas_to_client. deltas: {num_deltas}, clients: {num_clients} *******'
         )
         for delta in cls._RECENT_DELTAS:
-            cls._send_message_to_client(delta, client)
+            cls._send_message_to_single_client(delta, client)
 
     @classmethod
     def _store_delta(cls, data_json):
-        # Maintain deque of recent deltas that is up to N_OVERLAP in length
+        """
+        Maintain deque of recent deltas that is up to N_OVERLAP in length
+        """
         deltas = cls._RECENT_DELTAS
         deltas.append(data_json)
         if len(deltas) > cls.N_OVERLAP:
@@ -70,11 +87,18 @@ class Dispatcher:
 
     @classmethod
     def file_updated(cls):
+        """
+        The Watcher calls this method when it sees that a file has been updated
+        """
         print('file_updated *******************************')
         cls._200_tell_upstream_to_update_redis()
 
     @classmethod
     def _200_tell_upstream_to_update_redis(cls):
+        """
+        Note the number in the method. That shows you the order
+        Upstream in this case is arscca-pyramid.
+        """
         print('_200_tell_upstream_to_update_redis *******************************')
 
         # Payload from url will say which drivers changed
@@ -86,6 +110,10 @@ class Dispatcher:
 
     @classmethod
     def _201_verify_status_code_and_read_response(cls, response, url):
+        """
+        Note the number in the method. That shows you the order
+        """
+
         print(
             '_201_verify_status_code_and_read_response *******************************'
         )
@@ -108,6 +136,9 @@ class Dispatcher:
 
     @classmethod
     def _202_store_delta_and_send_to_all_clients(cls, delta_json):
+        """
+        Note the number in the method. That shows you the order
+        """
         print(
             '_202_store_delta_and_send_to_all_clients *******************************'
         )
@@ -115,11 +146,11 @@ class Dispatcher:
         cls._send_message_to_clients(delta_json)
 
     @classmethod
-    def _send_message_to_client(cls, message, client):
+    def _send_message_to_single_client(cls, message, client):
         cls._send_message_to_clients(message, [client])
 
     @classmethod
-    def _send_message_to_clients(cls, message, clients=[]):
+    def _send_message_to_clients(cls, message, clients=None):
 
         if isinstance(message, dict):
             message = json.dumps(message)
@@ -147,7 +178,12 @@ class Dispatcher:
         Util.post_to_slack(exc)
 
 
+# pylint: disable=too-many-ancestors
 class SomeServerProtocol(WebSocketServerProtocol):
+    """
+    Websocket callbacks
+    """
+
     def onConnect(self, request):
         # You cannot yet send messages to this protocol
         # Send any greetings in onOpen
@@ -178,10 +214,19 @@ class SomeServerProtocol(WebSocketServerProtocol):
 
 
 class StatusPage(Resource):
-    # see https://twistedmatrix.com/documents/current/web/howto/using-twistedweb.html
+    """
+    This status is page is here so we can monitor that the service is up
+
+    see https://twistedmatrix.com/documents/current/web/howto/using-twistedweb.html
+    """
+
     isLeaf = True
 
+    # pylint: disable=unused-argument,no-self-use
     def render_GET(self, request):
+        """
+        Return a simple html document
+        """
         return b'<html><body><h1>Serving</h1></body></html>'
 
 
@@ -205,5 +250,8 @@ if __name__ == '__main__':
     watcher.watch()
 
     site = Site(root)
+    # Not sure why pylint thinks these next two methods don't exist
+    # pylint: disable=no-member
     reactor.listenTCP(6544, site)
+    # pylint: disable=no-member
     reactor.run()
